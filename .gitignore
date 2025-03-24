@@ -36,3 +36,4 @@ lerna-debug.log*
 
 # local database files
 /database/*.sqlite
+notes.txt

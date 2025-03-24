@@ -24,7 +24,7 @@ paths:
               schema:
                 $ref: '#/definitions/Response'
       servers:
-        - url: https://run.mocky.io/v3/0dfda26a-3a5a-43e5-b68c-51f148eda473
+        - url: https://run.mocky.io/v3/1caf6b93-6e24-42b9-88fe-95405328c2a4
 definitions:
   Response:
     properties:

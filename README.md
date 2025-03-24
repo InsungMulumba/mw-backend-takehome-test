@@ -107,7 +107,7 @@ This is the current and preferred provider used for valuations, it is a fairly m
 
 The OpenAPI Specification can be found [here](http://localhost:3001/docs).
 
-The URI for this test stub in Mocky is https://run.mocky.io/v3/9245229e-5c57-44e1-964b-36c7fb29168b.
+The URI for this test stub in Mocky is https://run.mocky.io/v3/662b3eba-6d24-4d86-aea1-be4cc8f1cafd.
 
 ### Premium Car Valuations
 
@@ -115,7 +115,7 @@ This is the proposed fallback provider to be used for valuations, it is an old s
 
 The OpenAPI Specification can be found [here](http://localhost:3002/docs).
 
-The URI for this test stub in Mocky is https://run.mocky.io/v3/0dfda26a-3a5a-43e5-b68c-51f148eda473.
+The URI for this test stub in Mocky is https://run.mocky.io/v3/1caf6b93-6e24-42b9-88fe-95405328c2a4
 
 
 # Candidate Notes
