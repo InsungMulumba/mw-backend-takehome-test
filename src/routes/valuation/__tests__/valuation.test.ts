@@ -100,12 +100,14 @@ describe('ValuationController (e2e)', () => {
       });
 
       expect(res.statusCode).toStrictEqual(200);
+      /**
+       * Added these assertions to ensure we are calling providers correctly
+       */
       expect(fetchValuationFromSuperCarValuation).toHaveBeenCalled();
       expect(fetchValuationFromPremiumCarValuation).not.toHaveBeenCalled();
     });
 
     it('should return 200 without calling provider if already exists', async () => {
-
       const requestBody: VehicleValuationRequest = {
         mileage: 10000,
       };
@@ -114,7 +116,7 @@ describe('ValuationController (e2e)', () => {
         vrm: 'ABC123',
         lowestValue: 9000,
         highestValue: 11000,
-        provider: ''
+        provider: '',
       };
       const mockFindOneBy = fastify.orm.getRepository(VehicleValuation)
         .findOneBy as Mock;
@@ -151,8 +153,6 @@ describe('ValuationController (e2e)', () => {
       expect(fetchValuationFromSuperCarValuation).toHaveBeenCalled();
       expect(fetchValuationFromPremiumCarValuation).toHaveBeenCalled();
     });
-
-
 
     it('should return 502 if both services fail', async () => {
       const requestBody: VehicleValuationRequest = {
@@ -204,5 +204,35 @@ describe('ValuationController (e2e)', () => {
       });
       mockFindOneBy.mockReset();
     });
-  })
+
+    it('should return 404 if valuation does not exist', async () => {
+      const existingValuation = {
+        vrm: 'ABC123',
+        lowestValue: 9000,
+        highestValue: 11000,
+      };
+      const mockFindOneBy = fastify.orm.getRepository(VehicleValuation)
+        .findOneBy as Mock;
+        mockFindOneBy.mockImplementation(async ({ vrm }) => {
+          if (vrm !== existingValuation.vrm) return null;
+          return {
+            vrm: 'ABC123',
+            lowestValue: 9000,
+            highestValue: 11000,
+          };
+        });
+      const res = await fastify.inject({
+        url: '/valuations/DEF456',
+        body: {},
+        method: 'GET',
+      });
+      console.log(JSON.parse(res.body));
+
+      expect(res.statusCode).toStrictEqual(404);
+      mockFindOneBy.mockReset();
+
+    });
+
+
+  });
 });

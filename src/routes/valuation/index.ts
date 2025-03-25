@@ -4,28 +4,33 @@ import { VehicleValuationRequest } from './types/vehicle-valuation-request';
 import { fetchValuationFromSuperCarValuation } from '@app/super-car/super-car-valuation';
 import { VehicleValuation } from '@app/models/vehicle-valuation';
 import { fetchValuationFromPremiumCarValuation } from '@app/premium-car/premium-car-valuation';
-import { Provider } from '~root/config';
+import { breakerOptions, Provider } from '~root/config';
+import { ProviderLog } from '@app/models/provider-logs';
+import { LogMessages } from '@app/helpers/messages';
+import { isInvalidVRM } from '@app/helpers/utils';
 
-const breakerOptions = {
-  timeout: 15000,
-  errorThresholdPercentage: 50,
-  resetTimeout: 5000,
-  volumeThreshold: 5,
-};
-
-const breaker = new CircuitBreaker(
-  fetchValuationFromSuperCarValuation,
-  breakerOptions,
-);
-
-breaker.fallback((vrm: string, mileage: number) => {
-  console.warn(
-    `Circuit breaker triggered. Falling back to PremiumCarValuations for VRM: ${vrm}`,
-  );
-  return fetchValuationFromPremiumCarValuation(vrm, mileage);
-});
 
 export function valuationRoutes(fastify: FastifyInstance) {
+
+  /**
+   * We use circuit breaker provided by opossum for failover mechanism
+   */
+  const breaker = new CircuitBreaker(
+    fetchValuationFromSuperCarValuation,
+    breakerOptions,
+  );
+  breaker.fallback((vrm: string, mileage: number) => {
+    const providerLogRepository = fastify.orm.getRepository(ProviderLog);
+
+    fastify.log.warn(LogMessages.CIRCUIT_BREAKER_FALLBACK(vrm));
+
+    return fetchValuationFromPremiumCarValuation(
+      vrm,
+      mileage,
+      providerLogRepository,
+    );
+  });
+
   fastify.get<{
     Params: {
       vrm: string;
@@ -34,15 +39,16 @@ export function valuationRoutes(fastify: FastifyInstance) {
     const valuationRepository = fastify.orm.getRepository(VehicleValuation);
     const { vrm } = request.params;
 
-    if (vrm === null || vrm === '' || vrm.length > 7) {
+    if (isInvalidVRM(vrm)) {
       return reply
         .code(400)
-        .send({ message: 'vrm must be 7 characters or less', statusCode: 400 });
+        .send({ message: LogMessages.INVALID_VRM });
     }
 
     const result = await valuationRepository.findOneBy({ vrm: vrm });
-    console.log(result);
-    /** Backwards compatibility for valuations saved pre introduction of failover
+
+    /** 
+     * Backwards compatibility for valuations saved pre introduction of failover
      * I'm working with assumption that all previous valuations were saved with Super Car Valuations
      * If this is not the case, this could be easily changed to whatever value we wish to return to the FE
      */
@@ -52,8 +58,7 @@ export function valuationRoutes(fastify: FastifyInstance) {
 
     if (!result) {
       return reply.code(404).send({
-        message: `Valuation for VRM ${vrm} not found`,
-        statusCode: 404,
+        message: LogMessages.VALUATION_NOT_FOUND(vrm),
       });
     }
     return result;
@@ -66,28 +71,31 @@ export function valuationRoutes(fastify: FastifyInstance) {
     };
   }>('/valuations/:vrm', async (request, reply) => {
     const valuationRepository = fastify.orm.getRepository(VehicleValuation);
+    const providerLogRepository = fastify.orm.getRepository(ProviderLog);
     const { vrm } = request.params;
     const { mileage } = request.body;
 
-    console.log(`vrm2: ${vrm}`);
-
-    if (vrm.length > 7) {
+    if (isInvalidVRM(vrm)) {
       return reply
         .code(400)
-        .send({ message: 'vrm must be 7 characters or less', statusCode: 400 });
+        .send({ message: LogMessages.INVALID_VRM });
     }
 
     if (mileage === null || mileage <= 0) {
       return reply.code(400).send({
-        message: 'mileage must be a positive number',
-        statusCode: 400,
+        message: LogMessages.MILEAGE_NOT_POSITIVE,
       });
     }
 
+
+    /**
+     * I used early return pattern here to avoid unecessary provider calls
+     * in prod we could even use in-memory cache to avoid DB calls
+     */
     const existingRecord = await valuationRepository.findOneBy({ vrm });
     if (existingRecord) {
-      console.log(
-        `Valuation already exists for ${vrm}, returning cached result.`,
+      fastify.log.info(
+        LogMessages.VALUATION_EXISTS_ALREADY(vrm)
       );
       return existingRecord;
     }
@@ -95,11 +103,11 @@ export function valuationRoutes(fastify: FastifyInstance) {
     let valuation: VehicleValuation;
 
     try {
-      valuation = await breaker.fire(vrm, mileage);
+
+      valuation = await breaker.fire(vrm, mileage, providerLogRepository);
+
     } catch (err) {
-      return reply
-        .code(502)
-        .send({ message: 'Failed to fetch valuation', statusCode: 502 });
+      return reply.code(502).send({ message: LogMessages.FAILED_TO_FETCH });
     }
 
     await valuationRepository.insert(valuation).catch((err) => {

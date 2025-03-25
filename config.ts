@@ -5,3 +5,10 @@ export enum Provider {
     PREMIUM = "Premium Car Valuations",
     SUPER = "Super Car Valuations"
   }
+
+export const breakerOptions = {
+    timeout: 15000,
+    errorThresholdPercentage: 50,
+    resetTimeout: 5000,
+    volumeThreshold: 5,
+  };
