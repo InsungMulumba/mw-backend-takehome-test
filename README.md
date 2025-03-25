@@ -119,4 +119,4 @@ The URI for this test stub in Mocky is https://run.mocky.io/v3/1caf6b93-6e24-42b
 
 
 # Candidate Notes
-Here is a place for you to put any notes regarding the changes you made and the reasoning and what further changes you wish to suggest.
+I left some notes in the code explaining some of the technical decisions.

@@ -15,6 +15,6 @@ export class VehicleValuation {
     return (this.highestValue + this.lowestValue) / 2;
   }
 
-  @Column({ type: 'text', nullable: true})
+  @Column({ type: 'text', nullable: true })
   provider?: string;
 }

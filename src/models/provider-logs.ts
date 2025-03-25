@@ -7,7 +7,7 @@ import {
 
 @Entity()
 export class ProviderLog {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @Column()

@@ -11,7 +11,7 @@ describe.only('logProviderCall', () => {
     };
 
     const mockStart = performance.now();
-    await new Promise((r) => setTimeout(r, 10)); 
+    await new Promise((r) => setTimeout(r, 10));
 
     const mockVRM = 'TEST123';
     await logProviderCall({
@@ -34,5 +34,4 @@ describe.only('logProviderCall', () => {
     expect(typeof inserted.duration).toBe('number');
     expect(inserted.timestamp).toBeInstanceOf(Date);
   });
-
 });
